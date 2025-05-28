@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -15,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/textract"
 	textraTyp "github.com/aws/aws-sdk-go-v2/service/textract/types"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -312,12 +315,22 @@ func (s *Service) CompareFaces(srcBlob, targetBlob []byte) (*rekognition.Compare
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
 	service, err := NewService(context.Background())
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize service: %v", err))
 	}
 
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "*",
+		AllowHeaders: "*",
+	}))
 	app.Post("/kyc", service.HandleKYCVerification)
 
 	port := os.Getenv("PORT")
