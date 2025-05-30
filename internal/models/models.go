@@ -1,8 +1,26 @@
 package models
 
+import (
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
+
 // KYCRequest represents the request structure for KYC verification
 type KYCRequest struct {
 	Email string `form:"email" json:"email" validate:"required,email"`
+}
+
+type EmailRecord struct {
+	Email       string    `dynamodbav:"email"`
+	AttemptedAt time.Time `dynamodbav:"attempted_at"`
+	Processed   bool      `dynamodbav:"processed"`
+}
+
+// Marshal to map[string]types.AttributeValue
+func (e *EmailRecord) MarshalMap() (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMap(e)
 }
 
 // KYCResponse represents the response structure for KYC verification

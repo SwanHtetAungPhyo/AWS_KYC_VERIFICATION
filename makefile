@@ -110,3 +110,17 @@ help:
 	@echo "  fmt          - Format code"
 	@echo "  test         - Run tests"
 	@echo "  help         - Show this help"
+
+test-api:
+	@curl -X POST https://aws-kyc-verification.onrender.com/kyc \
+  -F "email=john.doe@example.com" \
+  -F "id_image=@test/passport.jpeg" \
+  -F "selfie=@test/selfie.jpeg" \
+  -H "Content-Type: multipart/form-data"
+dynamo-creation:
+	@aws dynamodb create-table \
+    --table-name EmailOcrAttempts \
+    --attribute-definitions AttributeName=email,AttributeType=S \
+    --key-schema AttributeName=email,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --region us-east-1

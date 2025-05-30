@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/handler"
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/repo"
@@ -10,6 +11,7 @@ import (
 	"github.com/SwanHtetAungPhyo/kyc-api/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
 func main() {
@@ -20,8 +22,6 @@ func main() {
 
 	log := logger.NewLogger()
 	log.Info("Starting KYC verification service")
-
-	// Initialize AWS repository
 	awsRepo, err := repo.NewAWSRepository(
 		cfg.AWS.AccessKeyID,
 		cfg.AWS.SecretAccessKey,
@@ -31,14 +31,8 @@ func main() {
 		log.WithError(err).Error("Failed to initialize AWS repository")
 		return
 	}
-
-	// Initialize services
 	kycService := service.NewKYCService(awsRepo, log)
-
-	// Initialize handlers
 	kycHandler := handler.NewKYCHandler(kycService, log)
-
-	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
@@ -55,17 +49,26 @@ func main() {
 		},
 	})
 
-	// Configure CORS
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowMethods: "*",
 		AllowHeaders: "*",
 	}))
 
-	// Register routes
-	kycHandler.RegisterRoutes(app)
+	app.Use(limiter.New(limiter.Config{
+		Max:        2,
+		Expiration: 1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string {
+			return c.IP()
+		},
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"success": false,
+				"error":   "Rate limit exceeded. Please try again later.",
+			})
+		},
+	}))
 
-	// Health check endpoint
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "healthy",
@@ -73,7 +76,8 @@ func main() {
 		})
 	})
 
-	// Start server
+	kycHandler.RegisterRoutes(app)
+
 	port := ":" + cfg.Server.Port
 	log.WithField("port", cfg.Server.Port).Info("Server starting")
 

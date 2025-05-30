@@ -4,18 +4,18 @@ import (
 	"io"
 
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/models"
+	"github.com/SwanHtetAungPhyo/kyc-api/internal/repo"
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/service"
 	"github.com/SwanHtetAungPhyo/kyc-api/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 )
 
-// KYCHandler handles KYC-related HTTP requests
 type KYCHandler struct {
 	kycService service.KYCService
 	logger     logger.Logger
+	repo       *repo.AWSRepository
 }
 
-// NewKYCHandler creates a new KYC handler instance
 func NewKYCHandler(kycService service.KYCService, log logger.Logger) *KYCHandler {
 	return &KYCHandler{
 		kycService: kycService,
@@ -23,9 +23,7 @@ func NewKYCHandler(kycService service.KYCService, log logger.Logger) *KYCHandler
 	}
 }
 
-// HandleKYCVerification handles KYC verification requests
 func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
-	// Parse request body
 	var req models.KYCRequest
 	if err := c.BodyParser(&req); err != nil {
 		h.logger.WithError(err).Error("Failed to parse request body")
@@ -35,7 +33,6 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		})
 	}
 
-	// Validate email
 	if req.Email == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
 			Success: false,
@@ -43,7 +40,21 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		})
 	}
 
-	// Get uploaded files
+	proceed, err := h.kycService.CheckIfProceed(c.Context(), req.Email)
+	if err != nil {
+		h.logger.WithError(err).Error("Failed to check email status")
+		return c.Status(fiber.StatusInternalServerError).JSON(models.KYCResponse{
+			Success: false,
+			Error:   "Failed to check email status",
+		})
+	}
+	if proceed {
+		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
+			Success: false,
+			Error:   "KYC with this email is already done successfully",
+		})
+	}
+
 	idBlob, err := h.getFileBlob(c, "id_image")
 	if err != nil {
 		h.logger.WithError(err).Error("Failed to process ID image")
@@ -62,7 +73,6 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		})
 	}
 
-	// Perform KYC verification
 	result, err := h.kycService.VerifyKYC(c.Context(), idBlob, selfieBlob, req.Email)
 	if err != nil {
 		h.logger.WithError(err).Error("KYC verification failed")
@@ -72,7 +82,6 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		})
 	}
 
-	// Return successful response
 	response := models.KYCResponse{
 		Success:    true,
 		Verified:   result.Verified,
@@ -83,7 +92,6 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
-// getFileBlob extracts file blob from multipart form data
 func (h *KYCHandler) getFileBlob(c *fiber.Ctx, fieldName string) ([]byte, error) {
 	fileHeader, err := c.FormFile(fieldName)
 	if err != nil {
@@ -104,7 +112,6 @@ func (h *KYCHandler) getFileBlob(c *fiber.Ctx, fieldName string) ([]byte, error)
 	return blob, nil
 }
 
-// RegisterRoutes registers all KYC routes
 func (h *KYCHandler) RegisterRoutes(app *fiber.App) {
 	app.Post("/kyc", h.HandleKYCVerification)
 }
