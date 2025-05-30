@@ -9,7 +9,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rekognition v1.46.3
 	github.com/aws/aws-sdk-go-v2/service/textract v1.35.2
 	github.com/gofiber/fiber/v2 v2.52.8
+<<<<<<< HEAD
 	github.com/joho/godotenv v1.5.1
+=======
+>>>>>>> eed52768e0491698ce2a6003b4760324695cc1c5
 	github.com/sirupsen/logrus v1.9.3
 )
 
@@ -26,6 +29,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+<<<<<<< HEAD
+=======
+	github.com/joho/godotenv v1.5.1 // indirect
+>>>>>>> eed52768e0491698ce2a6003b4760324695cc1c5
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
