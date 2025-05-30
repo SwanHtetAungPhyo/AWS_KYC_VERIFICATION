@@ -7,7 +7,7 @@ RUN go mod tidy
 
 COPY . .
 
-RUN go build -o main .
+RUN go build -o main cmd/server/main.go
 
 EXPOSE 3000
 
