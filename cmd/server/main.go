@@ -33,6 +33,7 @@ func main() {
 	}
 	kycService := service.NewKYCService(awsRepo, log)
 	kycHandler := handler.NewKYCHandler(kycService, log)
+	apiKeyHandler := handler.NewAPIKeyHandler(log, cfg)
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
@@ -77,7 +78,7 @@ func main() {
 	})
 
 	kycHandler.RegisterRoutes(app)
-
+	apiKeyHandler.RegisterRoutes(app)
 	port := ":" + cfg.Server.Port
 	log.WithField("port", cfg.Server.Port).Info("Server starting")
 

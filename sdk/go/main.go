@@ -8,18 +8,24 @@ import (
 )
 
 func main() {
-	idImage, err := os.ReadFile("./test/passort.jpeg")
+	idImage, err := os.ReadFile("./test/passport.jpeg")
 	if err != nil {
 		fmt.Printf("Error reading id_image: %v\n", err)
 		return
 	}
-	selfie, err := os.ReadFile("./test/selfile.jpeg")
+	selfie, err := os.ReadFile("./test/selfie.jpeg")
 	if err != nil {
 		fmt.Printf("Error reading selfie: %v\n", err)
 		return
 	}
 
-	client := kycsdk.NewSKYClient("https://aws-kyc-verification.onrender.com")
+	apiKey := os.Getenv("KYC_API_KEY") // Set this in environment or replace with actual key
+	if apiKey == "" {
+		fmt.Println("Error: KYC_API_KEY environment variable not set")
+		return
+	}
+
+	client := kycsdk.NewSKYClient("https://aws-kyc-verification.onrender.com", apiKey)
 	req := kycsdk.KYCRequest{
 		Email:   "john.doe@example.com",
 		IDImage: idImage,

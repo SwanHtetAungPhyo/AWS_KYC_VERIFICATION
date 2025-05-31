@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/models"
-	"github.com/SwanHtetAungPhyo/kyc-api/internal/repo"
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/service"
 	"github.com/SwanHtetAungPhyo/kyc-api/pkg/logger"
 	"github.com/gofiber/fiber/v2"
@@ -13,7 +12,6 @@ import (
 type KYCHandler struct {
 	kycService service.KYCService
 	logger     logger.Logger
-	repo       *repo.AWSRepository
 }
 
 func NewKYCHandler(kycService service.KYCService, log logger.Logger) *KYCHandler {

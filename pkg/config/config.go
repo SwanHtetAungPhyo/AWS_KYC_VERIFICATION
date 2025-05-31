@@ -1,19 +1,13 @@
 package config
 
-import (
-	"fmt"
-	"os"
+import "os"
 
-	"github.com/joho/godotenv"
-)
-
-// Config holds all configuration values
 type Config struct {
 	AWS    AWSConfig
 	Server ServerConfig
+	JWT    JWTConfig
 }
 
-// AWSConfig holds AWS-specific configuration
 type AWSConfig struct {
 	AccessKeyID     string
 	SecretAccessKey string
@@ -24,42 +18,29 @@ type ServerConfig struct {
 	Port string
 }
 
-func Load() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		fmt.Println("Warning: .env file not found, using system environment variables")
-	}
+type JWTConfig struct {
+	Secret string
+}
 
-	cfg := &Config{
+func Load() (*Config, error) {
+	return &Config{
 		AWS: AWSConfig{
-			AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-			SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-			Region:          getEnvOrDefault("AWS_REGION", "us-east-1"),
+			AccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
+			SecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
+			Region:          getEnv("AWS_REGION", "us-east-1"),
 		},
 		Server: ServerConfig{
-			Port: getEnvOrDefault("PORT", "3000"),
+			Port: getEnv("PORT", "3000"),
 		},
-	}
-
-	if err := cfg.validate(); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
-	}
-
-	return cfg, nil
+		JWT: JWTConfig{
+			Secret: getEnv("JWT_SECRET", "yqKmE7cB7OWpouhuR/x/11HMjx/0Ki5cwwN756K2/dM="),
+		},
+	}, nil
 }
 
-func (c *Config) validate() error {
-	if c.AWS.AccessKeyID == "" {
-		return fmt.Errorf("AWS_ACCESS_KEY_ID is required")
-	}
-	if c.AWS.SecretAccessKey == "" {
-		return fmt.Errorf("AWS_SECRET_ACCESS_KEY is required")
-	}
-	return nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	return defaultValue
+	return fallback
 }
