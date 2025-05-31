@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"errors"
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/models"
 	"github.com/SwanHtetAungPhyo/kyc-api/internal/service"
@@ -27,7 +30,7 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		h.logger.WithError(err).Error("Failed to parse request body")
 		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
 			Success: false,
-			Error:   "Invalid request body",
+			Error:   fmt.Sprintf("Failed to parse request body: %v", err),
 		})
 	}
 
@@ -43,7 +46,7 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		h.logger.WithError(err).Error("Failed to check email status")
 		return c.Status(fiber.StatusInternalServerError).JSON(models.KYCResponse{
 			Success: false,
-			Error:   "Failed to check email status",
+			Error:   fmt.Sprintf("Failed to check email status: %v", err),
 		})
 	}
 	if proceed {
@@ -58,7 +61,7 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		h.logger.WithError(err).Error("Failed to process ID image")
 		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
 			Success: false,
-			Error:   "ID image is required and must be valid",
+			Error:   fmt.Sprintf("Failed to process ID image: %v", err),
 		})
 	}
 
@@ -67,16 +70,16 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		h.logger.WithError(err).Error("Failed to process selfie")
 		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
 			Success: false,
-			Error:   "Selfie is required and must be valid",
+			Error:   fmt.Sprintf("Failed to process selfie: %v", err),
 		})
 	}
 
 	result, err := h.kycService.VerifyKYC(c.Context(), idBlob, selfieBlob, req.Email)
 	if err != nil {
 		h.logger.WithError(err).Error("KYC verification failed")
-		return c.Status(fiber.StatusInternalServerError).JSON(models.KYCResponse{
+		return c.Status(fiber.StatusBadRequest).JSON(models.KYCResponse{
 			Success: false,
-			Error:   err.Error(),
+			Error:   fmt.Sprintf("KYC verification failed: %v", err),
 		})
 	}
 
@@ -87,24 +90,29 @@ func (h *KYCHandler) HandleKYCVerification(c *fiber.Ctx) error {
 		Message:    result.Message,
 	}
 
+	h.logger.Info("KYC response sent", "response", response)
 	return c.JSON(response)
 }
 
 func (h *KYCHandler) getFileBlob(c *fiber.Ctx, fieldName string) ([]byte, error) {
 	fileHeader, err := c.FormFile(fieldName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("missing or invalid file: %w", err)
+	}
+
+	if !strings.HasPrefix(fileHeader.Header.Get("Content-Type"), "image/") {
+		return nil, errors.New("file must be an image (JPG, PNG)")
 	}
 
 	file, err := fileHeader.Open()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
 	blob, err := io.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	return blob, nil
