@@ -30,7 +30,7 @@ func Load() (*Config, error) {
 			Region:          getEnv("AWS_REGION", "us-east-1"),
 		},
 		Server: ServerConfig{
-			Port: getEnv("PORT", "3000"),
+			Port: getEnv("PORT", "3001"),
 		},
 		JWT: JWTConfig{
 			Secret: getEnv("JWT_SECRET", "yqKmE7cB7OWpouhuR/x/11HMjx/0Ki5cwwN756K2/dM="),
