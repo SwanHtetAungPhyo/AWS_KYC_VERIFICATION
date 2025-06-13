@@ -26,7 +26,7 @@ func NewAPIKeyHandler(log logger.Logger, cfg *config.Config) *APIKeyHandler {
 func (h *APIKeyHandler) GenerateAPIKey(c *fiber.Ctx) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(30 * 24 * time.Hour).Unix(), // 30 days expiration
+		"exp": time.Now().Add(30 * 24 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(h.jwtSecret))
